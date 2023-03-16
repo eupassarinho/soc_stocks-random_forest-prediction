@@ -6,7 +6,6 @@ require(dplyr)
 require(writexl)
 
 require(random)
-require(rsample)
 
 require(caret)
 require(randomForest)
@@ -31,23 +30,10 @@ stable_areas_data <- original_data %>% filter(Area_Estavel == 1)
 
 unstable_areas_data <- original_data %>% filter(Area_Estavel == 0)
 
-#randomNumbers(n = 1, min = 100, max = 9999, col = 1)
-set.seed(1244)
+train_sets <- list(stable_areas_data, unstable_areas_data)
+names(train_sets) <- c("stable_areas_data", "unstable_areas_data")
 
-stable_areas_split <- initial_split(stable_areas_data, prop = 0.7)
-train_set_stable_areas <- training(stable_areas_split)
-
-set.seed(4455)
-
-unstable_areas_split <- initial_split(unstable_areas_data, prop = 0.7)
-train_set_unstable_areas <- training(unstable_areas_split)
-
-train_sets <- list(train_set_stable_areas, train_set_unstable_areas)
-names(train_sets) <- c("train_set_stable_areas", "train_set_unstable_areas")
-
-remove(stable_areas_split, unstable_areas_split, original_data,
-       stable_areas_data, unstable_areas_data,
-       train_set_stable_areas, train_set_unstable_areas)
+remove(original_data, stable_areas_data, unstable_areas_data)
 
 # Creating random seeds vector --------------------------------------------
 
@@ -63,7 +49,6 @@ random_seeds <- c(6842, 7045, 1359, 4109, 7947, 9122, 2050, 6646, 8143, 8444,
                   5790, 8395, 6161, 8942, 8907, 329, 2263, 9397, 3317, 6359,
                   8121, 2416, 1121, 9781, 4723, 5186, 3671, 7715, 4939, 4640,
                   9268, 5138, 6258, 8862, 2386, 6146, 879, 6644, 1821)
-random_seeds <- random_seeds[1]
 
 # Covariables -------------------------------------------------------------
 
@@ -133,7 +118,11 @@ covariables <- c(
                   'Contato_Ecotono_e_Encrave',
                   'Floresta_Estacional_Sempre_Verde',
                   'Estepe'
-)
+                  )
+
+# Statistical metrics -----------------------------------------------------
+
+source("C:/Users/erlis/Documents/MEGA/Parcerias_Laboratorios/11_MapBiomas_GT-Solos/soc_stocks-random_forest-prediction/my_statistical_functions.R")
 
 # Modeling ----------------------------------------------------------------
 
@@ -155,7 +144,9 @@ for (j in seq(along.with = train_sets)) {
     set.seed(random_seeds[i])
     
     ## Preparing k-Fold control object
-    cv_control_object <- trainControl(method = "cv", number = 10)
+    cv_control_object <- trainControl(method = "cv", number = 10,
+                                      summaryFunction = my_summary_metrics,
+                                      returnResamp = 'all')
     
     ## Training model
   
@@ -166,6 +157,7 @@ for (j in seq(along.with = train_sets)) {
       method = "rf",
       ntree = 790,
       nodesize = 5,
+      sampsize = 0.632,
       importance = TRUE,
       trControl = cv_control_object,
       tuneGrid = expand.grid(mtry = 22)

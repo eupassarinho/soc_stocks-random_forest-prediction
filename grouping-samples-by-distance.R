@@ -62,3 +62,31 @@ df <- df %>%
 
 
 
+# Creating clusters -------------------------------------------------------
+
+
+
+# load required packages
+library(geosphere)
+library(dplyr)
+library(stats)
+
+# generate sample data frame with latitude and longitude columns
+df <- data.frame(latitude = c(-23.55052, -22.90642, -23.55052, -22.90642),
+                 longitude = c(-46.63331, -43.17290, -46.63331, -43.17290))
+
+# compute distance matrix between samples
+dist_mat <- distm(df[, c("longitude", "latitude")])
+
+# perform k-means clustering on distance matrix
+k <- 2  # number of clusters
+km_res <- kmeans(dist_mat, k)
+
+# add cluster ID to original data frame
+df <- df %>%
+  mutate(cluster = km_res$cluster)
+
+# print result
+print(df)
+
+

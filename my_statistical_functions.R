@@ -6,22 +6,22 @@ my_summary_metrics <- function(data, lev = NULL, model = NULL) {
   regression_eval <- function(pred, obs){
     
     # mean error
-    ME <- round(mean(pred - obs, na.rm = TRUE), digits = 3)
+    ME <- round(mean(pred - obs, na.rm = TRUE), digits = 4)
     
     # mean square error
-    MSE <-   round(mean((pred - obs)^2, na.rm = TRUE), digits = 3)
+    MSE <-   round(mean((pred - obs)^2, na.rm = TRUE), digits = 4)
     
     # mean absolute error
-    MAE <-   round(mean(abs(pred - obs), na.rm = TRUE), digits = 3)
+    MAE <-   round(mean(abs(pred - obs), na.rm = TRUE), digits = 4)
     
     # root mean square error
-    RMSE <-   round(sqrt(mean((pred - obs)^2, na.rm = TRUE)), digits = 3)
+    RMSE <-   round(sqrt(mean((pred - obs)^2, na.rm = TRUE)), digits = 4)
     
     # Pearson's correlation squared
-    r2 <-  round((cor(pred, obs, method = 'spearman', use = 'pairwise.complete.obs')^2), digits = 2)
+    r2 <-  round((cor(pred, obs, method = 'spearman', use = 'pairwise.complete.obs')^2), digits = 4)
     
     # Lin's concordance correlation coefficient
-    CCC <- yardstick::ccc_vec(truth = obs, estimate = pred)
+    CCC <- round(yardstick::ccc_vec(truth = obs, estimate = pred), digits = 4)
     
     out <- c(ME, MAE, MSE, RMSE, r2, CCC)
     names(out) <- c("ME", "MAE", "MSE", "RMSE", "Rsquared", "CCC")

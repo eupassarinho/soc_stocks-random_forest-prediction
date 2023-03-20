@@ -8,7 +8,8 @@ require(writexl)
 require(random)
 
 require(caret)
-require(randomForest)
+#require(randomForest)
+require(ranger)
 
 # Working with clusters (optional) ----------------------------------------
 
@@ -139,6 +140,7 @@ for (j in seq(along.with = train_sets)) {
   for (i in seq(along.with = random_seeds)) {
     
     ti <- Sys.time()
+    print(paste("Start time:", Sys.time(),"; random seed:", random_seeds[i]))
     
     ## Setting randomization seed
     set.seed(random_seeds[i])
@@ -150,17 +152,29 @@ for (j in seq(along.with = train_sets)) {
     
     ## Training model
   
+    #tuned_RF_kfold_cv <- train(
+    #  as.formula(paste("estoque", "~",
+    #                   paste(covariables, collapse = '+'))),
+    #  data = training_data,
+    #  method = "rf",
+    #  ntree = 790,
+    #  nodesize = 5,
+    #  importance = TRUE,
+    #  trControl = cv_control_object,
+    #  tuneGrid = expand.grid(mtry = 22)
+    #  )
     tuned_RF_kfold_cv <- train(
       as.formula(paste("estoque", "~",
                        paste(covariables, collapse = '+'))),
       data = training_data,
-      method = "rf",
-      ntree = 790,
-      nodesize = 5,
-      sampsize = 0.632,
-      importance = TRUE,
+      method = "ranger",
+      num.trees = 790,
+      replace = TRUE,
+      sample.fraction = 0.632,
+      importance = "permutation",
       trControl = cv_control_object,
-      tuneGrid = expand.grid(mtry = 22)
+      tuneGrid = expand.grid(mtry = 22, min.node.size = 5,
+                             splitrule = "variance")
       )
     
     remove(cv_control_object)

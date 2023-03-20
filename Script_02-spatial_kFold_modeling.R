@@ -11,7 +11,8 @@ library(jsonlite)
 
 require(CAST)
 require(caret)
-require(randomForest)
+#require(randomForest)
+require(ranger)
 
 # Setting output data path ------------------------------------------------
 
@@ -109,7 +110,7 @@ random_seeds <- c(6842, 7045, 1359, 4109, 7947, 9122, 2050, 6646, 8143, 8444,
                   5790, 8395, 6161, 8942, 8907, 329, 2263, 9397, 3317, 6359,
                   8121, 2416, 1121, 9781, 4723, 5186, 3671, 7715, 4939, 4640,
                   9268, 5138, 6258, 8862, 2386, 6146, 879, 6644, 1821)
-random_seeds <- random_seeds[1]
+
 # Covariables -------------------------------------------------------------
 
 covariables <- c(
@@ -199,6 +200,7 @@ for (j in seq(along.with = train_sets)) {
   for (i in seq(along.with = random_seeds)) {
     
     ti <- Sys.time()
+    print(paste("Start time:", Sys.time(),"; random seed:", random_seeds[i]))
     
     ## Setting randomization seed
     set.seed(random_seeds[i])
@@ -221,21 +223,35 @@ for (j in seq(along.with = train_sets)) {
     
     ## Training model
     
+    #tuned_RF_spatial_kfold_cv <- train(
+    #  as.formula(paste("estoque", "~",
+    #                   paste(covariables, collapse = '+'))),
+    #  data = training_data,
+    #  method = "rf",
+    #  ntree = 790,
+    #  nodesize = 5,
+    #  sampsize = 0.632,
+    #  importance = TRUE,
+    #  trControl = LCOCV_trCtrl,
+    #  tuneGrid = expand.grid(mtry = 22)
+    #)
+    
     tuned_RF_spatial_kfold_cv <- train(
       as.formula(paste("estoque", "~",
                        paste(covariables, collapse = '+'))),
       data = training_data,
-      method = "rf",
-      ntree = 790,
-      nodesize = 5,
-      sampsize = 0.632,
-      importance = TRUE,
+      method = "ranger",
+      num.trees = 790,
+      replace = TRUE,
+      sample.fraction = 0.632,
+      importance = "permutation",
       trControl = LCOCV_trCtrl,
-      tuneGrid = expand.grid(mtry = 22)
+      tuneGrid = expand.grid(mtry = 22, min.node.size = 5,
+                             splitrule = "variance")
     )
     
     remove(LCOCV_obj, LCOCV_trCtrl)
-    
+
     ## Getting training metrics
     
     ## Getting cross-validation metrics

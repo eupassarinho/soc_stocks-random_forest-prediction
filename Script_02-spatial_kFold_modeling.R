@@ -1,4 +1,6 @@
+number_of_clusters <- c(10, 30, 50, 100)
 
+for (k in seq(along.with = number_of_clusters)) {
 # Necessary modules -------------------------------------------------------
 
 require(readr)
@@ -16,13 +18,15 @@ require(ranger)
 
 # Setting output data path ------------------------------------------------
 
-output_models_path <- "C:/Users/erlis/OneDrive/Área de Trabalho/tuned-models/"
+output_models_path <- "C:/Users/CODEVASF/Desktop/soc_stocks-random_forest-prediction-main/tuned-models_v1-5-0/"
 
-output_models_results_path <- "C:/Users/erlis/OneDrive/Área de Trabalho/cross-validation-results/"
+output_models_results_path <- "C:/Users/CODEVASF/Desktop/soc_stocks-random_forest-prediction-main/cross-validation-results_v1-5-0/"
 
-# Importing dataset -------------------------------------------------------
+# Importing and splitting datasets ----------------------------------------
 
 original_data <- read_csv("01-data/matriz_rf_prediction_v1-5-0.csv")
+
+data_version <- "v1-5-0"
 
 # Grouping samples by geographical position -------------------------------
 
@@ -51,7 +55,7 @@ dist_mat <- distm(original_data[, c("LON", "LAT")])
 # apply k-means clustering to the distance matrix
 #randomNumbers(n = 1, min = 100, max = 9999, col = 1) %>% as.vector()
 set.seed(3019)
-k <- 10 # number of clusters
+k <- number_of_clusters[k] # number of clusters
 kmeans_clusters <- kmeans(dist_mat, k)
 
 # add cluster ID to original data frame
@@ -76,7 +80,7 @@ original_data$cluster <- kmeans_clusters$cluster
 #ggsave("clustered_points.png", plot = clustered_samples,
 #       width = 210, height = 250, units = "mm", dpi = 300)               
 
-remove(dist_mat, k, kmeans_clusters, clustered_samples,
+remove(dist_mat, kmeans_clusters, clustered_samples,
        extract_latitude, extract_longitude)
 
 # Working with clusters (optional) ----------------------------------------
@@ -183,7 +187,7 @@ covariables <- c(
 
 # Statistical metrics -----------------------------------------------------
 
-source("C:/Users/erlis/Documents/MEGA/Parcerias_Laboratorios/11_MapBiomas_GT-Solos/soc_stocks-random_forest-prediction/my_statistical_functions.R")
+source("./my_statistical_functions.R")
 
 # Modeling ----------------------------------------------------------------
 
@@ -222,20 +226,6 @@ for (j in seq(along.with = train_sets)) {
     )
     
     ## Training model
-    
-    #tuned_RF_spatial_kfold_cv <- train(
-    #  as.formula(paste("estoque", "~",
-    #                   paste(covariables, collapse = '+'))),
-    #  data = training_data,
-    #  method = "rf",
-    #  ntree = 790,
-    #  nodesize = 5,
-    #  sampsize = 0.632,
-    #  importance = TRUE,
-    #  trControl = LCOCV_trCtrl,
-    #  tuneGrid = expand.grid(mtry = 22)
-    #)
-    
     tuned_RF_spatial_kfold_cv <- train(
       as.formula(paste("estoque", "~",
                        paste(covariables, collapse = '+'))),
@@ -255,7 +245,8 @@ for (j in seq(along.with = train_sets)) {
     ## Getting training metrics
     
     ## Getting cross-validation metrics
-    cv <- tuned_RF_spatial_kfold_cv[["resample"]] %>% mutate(model = i)
+    cv <- tuned_RF_spatial_kfold_cv[["resample"]] %>%
+      mutate(model = i) %>% mutate(map_version = data_version, n_clusters = k)
     
     rf_kFold_cross_validation[[i]] <- cv
     
@@ -265,7 +256,8 @@ for (j in seq(along.with = train_sets)) {
     result <- tuned_RF_spatial_kfold_cv[["results"]] %>%
       filter(mtry == hyperparameters[1, 1])
     
-    rf_kFold_best_models[[i]] <- result %>% mutate(model = i)
+    rf_kFold_best_models[[i]] <- result %>% mutate(model = i) %>%
+      mutate(map_version = data_version, n_clusters = k)
     
     ## Cleaning up memory space
     remove(cv, hyperparameters, result)
@@ -280,14 +272,14 @@ for (j in seq(along.with = train_sets)) {
       save(tuned_RF_spatial_kfold_cv,
            file = paste0(output_models_path,
                          if(j == 1){"stable_"} else {"unstable_"},
-                         "tuned_RF_spatial-cv_model_", i, ".RData"))
+                         "tuned_RF-", k, "_clusters-spatial_cv_model_", i, ".RData"))
       
     } else {
       
       save(tuned_RF_spatial_kfold_cv,
            file = paste0(output_models_path,
                          if(j == 1){"stable_"} else {"unstable_"},
-                         "tuned_RF_spatial-cv_model_", i, ".RData"))
+                         "tuned_RF-", k, "_clusters-spatial_cv_model_", i, ".RData"))
     }
     
     tf <- Sys.time()
@@ -309,14 +301,14 @@ for (j in seq(along.with = train_sets)) {
     
     write_xlsx(rf_all_cv_results[[j]],
                paste0(output_models_results_path,
-                      if(j == 1){"stable_"} else {"unstable_"},
-                      "rf-inner-spatial-kFold-results.xlsx"),
+                      if(j == 1){"stable-"} else {"unstable-"},
+                      paste0("rf-inner-", k, "_clusters-spatial-kFold-results.xlsx")),
                col_names = TRUE)
     
     write_xlsx(rf_all_best_models[[j]],
                paste0(output_models_results_path,
-                      if(j == 1){"stable_"} else {"unstable_"},
-                      "rf-spatial-kFold-results.xlsx"),
+                      if(j == 1){"stable-"} else {"unstable-"},
+                      paste0("rf-", k, "_clusters-spatial-kFold-results.xlsx")),
                col_names = TRUE)
     
   } else {
@@ -325,14 +317,14 @@ for (j in seq(along.with = train_sets)) {
     
     write_xlsx(rf_all_cv_results[[j]],
                paste0(output_models_results_path,
-                      if(j == 1){"stable_"} else {"unstable_"},
-                      "rf-inner-spatial-kFold-results.xlsx"),
+                      if(j == 1){"stable-"} else {"unstable-"},
+                      paste0("rf-inner-", k, "_clusters-spatial-kFold-results.xlsx")),
                col_names = TRUE)
     
     write_xlsx(rf_all_best_models[[j]],
                paste0(output_models_results_path,
-                      if(j == 1){"stable_"} else {"unstable_"},
-                      "rf-spatial-kFold-results.xlsx"),
+                      if(j == 1){"stable-"} else {"unstable-"},
+                      paste0("rf-", k, "_clusters-spatial-kFold-results.xlsx")),
                col_names = TRUE)  
     
   }
@@ -344,7 +336,8 @@ for (j in seq(along.with = train_sets)) {
 }
 
 remove(rf_all_cv_results, rf_all_best_models, train_sets, random_seeds,
-       covariables, j, output_models_path, output_models_results_path)
+       covariables, j, output_models_path, output_models_results_path,
+       k, data_version)
 
 # Finalizing --------------------------------------------------------------
 
@@ -354,4 +347,5 @@ if (exists("cl")) {
   rm(cl)
 } else {
   print("Code is not working with clusters.")
+}
 }

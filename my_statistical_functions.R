@@ -20,11 +20,14 @@ my_summary_metrics <- function(data, lev = NULL, model = NULL) {
     # Pearson's correlation squared
     r2 <-  round((cor(pred, obs, method = 'spearman', use = 'pairwise.complete.obs')^2), digits = 4)
     
+    # Nash–Sutcliffe model efficiency coefficient
+    NSE <- round(hydroGOF::NSE(sim = pred, obs = obs), digits = 4)
+    
     # Lin's concordance correlation coefficient
     CCC <- round(yardstick::ccc_vec(truth = obs, estimate = pred), digits = 4)
     
-    out <- c(ME, MAE, MSE, RMSE, r2, CCC)
-    names(out) <- c("ME", "MAE", "MSE", "RMSE", "Rsquared", "CCC")
+    out <- c(ME, MAE, MSE, RMSE, NSE, r2, CCC)
+    names(out) <- c("ME", "MAE", "MSE", "RMSE", "NSE", "Rsquared", "CCC")
     
     if (any(is.nan(out))) 
       out[is.nan(out)] <- NA

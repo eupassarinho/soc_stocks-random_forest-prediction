@@ -19,16 +19,13 @@ registerDoParallel(cl)
 
 # Setting output data path ------------------------------------------------
 
-output_models_path <- "C:/Users/CODEVASF/Desktop/soc_stocks-random_forest-prediction-main/tuned-models/"
+output_models_path <- "C:/Users/erlis/OneDrive/Área de Trabalho/tuned-models/"
 
-output_models_results_path <- "C:/Users/CODEVASF/Desktop/soc_stocks-random_forest-prediction-main/cross-validation-results/"
+output_models_results_path <- "C:/Users/erlis/OneDrive/Área de Trabalho/cross-validation-results/"
 
 # Importing and splitting datasets ----------------------------------------
 
-original_data <- read_csv("01-data/matriz_rf_prediction_v1-6-0.csv")
-
-data_version <- "v1-6-0"
-k = NA
+original_data <- read_csv("01-data/matriz_rf_prediction_v1-5-0.csv")
 
 stable_areas_data <- original_data %>% filter(Area_Estavel == 1)
 
@@ -126,7 +123,7 @@ covariables <- c(
 
 # Statistical metrics -----------------------------------------------------
 
-source("./my_statistical_functions.R")
+source("C:/Users/erlis/Documents/MEGA/Parcerias_Laboratorios/11_MapBiomas_GT-Solos/soc_stocks-random_forest-prediction/my_statistical_functions.R")
 
 # Modeling ----------------------------------------------------------------
 
@@ -154,6 +151,18 @@ for (j in seq(along.with = train_sets)) {
                                       returnResamp = 'all')
     
     ## Training model
+  
+    #tuned_RF_kfold_cv <- train(
+    #  as.formula(paste("estoque", "~",
+    #                   paste(covariables, collapse = '+'))),
+    #  data = training_data,
+    #  method = "rf",
+    #  ntree = 790,
+    #  nodesize = 5,
+    #  importance = TRUE,
+    #  trControl = cv_control_object,
+    #  tuneGrid = expand.grid(mtry = 22)
+    #  )
     tuned_RF_kfold_cv <- train(
       as.formula(paste("estoque", "~",
                        paste(covariables, collapse = '+'))),
@@ -173,8 +182,7 @@ for (j in seq(along.with = train_sets)) {
     ## Getting training metrics
     
     ## Getting cross-validation metrics
-    cv <- tuned_RF_kfold_cv[["resample"]] %>% mutate(model = i) %>% 
-      mutate(map_version = data_version, n_clusters = k)
+    cv <- tuned_RF_kfold_cv[["resample"]] %>% mutate(model = i)
     
     rf_kFold_cross_validation[[i]] <- cv
     
@@ -184,8 +192,7 @@ for (j in seq(along.with = train_sets)) {
     result <- tuned_RF_kfold_cv[["results"]] %>%
       filter(mtry == hyperparameters[1, 1])
     
-    rf_kFold_best_models[[i]] <- result %>% mutate(model = i) %>% 
-      mutate(map_version = data_version, n_clusters = k)
+    rf_kFold_best_models[[i]] <- result %>% mutate(model = i)
     
     ## Cleaning up memory space
     remove(cv, hyperparameters, result)

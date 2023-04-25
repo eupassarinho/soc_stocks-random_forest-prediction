@@ -17,6 +17,8 @@ for (k in seq(along.with = number_of_clusters)) {
   #require(randomForest)
   require(ranger)
   
+  library(doParallel)
+  
   # Setting output data path ------------------------------------------------
   
   output_models_path <- "C:/Users/erlis/OneDrive/Área de Trabalho/tuned-models_v1-5-0/"
@@ -86,7 +88,6 @@ for (k in seq(along.with = number_of_clusters)) {
   
   # Working with clusters (optional) ----------------------------------------
   
-  library(doParallel)
   cl <- makeCluster(detectCores()-2)
   registerDoParallel(cl)
   

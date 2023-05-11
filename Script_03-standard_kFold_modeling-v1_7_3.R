@@ -19,15 +19,18 @@ registerDoParallel(cl)
 
 # Setting output data path ------------------------------------------------
 
-output_models_path <- "C:/Users/erlis/OneDrive/Área de Trabalho/tuned-models_v1-7-2/"
+input_data_path <- "C:/Users/erlis/Documents/MEGA/Parcerias_Laboratorios/11_MapBiomas_GT-Solos/2023-04-25-cross_validation-study/01-data"
 
-output_models_results_path <- "C:/Users/erlis/OneDrive/Área de Trabalho/cross-validation-results_v1-7-2/"
+output_models_path <- "C:/Users/erlis/OneDrive/Área de Trabalho/tuned-models_v1-7-3/"
+
+output_models_results_path <- "C:/Users/erlis/OneDrive/Área de Trabalho/cross-validation-results_v1-7-3/"
 
 # Importing and splitting datasets ----------------------------------------
 
-original_data <- read_csv("01-data/matriz_rf_prediction_v1-7-2.csv")
+original_data <- read_csv(paste0(input_data_path,
+                                 "/matriz_rf_prediction_v1-7-3.csv"))
 
-data_version <- "v1-7-2"
+data_version <- "v1-7-3"
 k = NA
 
 # Creating random seeds vector --------------------------------------------
@@ -48,14 +51,15 @@ random_seeds <- c(6842, 7045, 1359, 4109, 7947, 9122, 2050, 6646, 8143, 8444,
 # Covariables -------------------------------------------------------------
 
 covariables <- c(
-  #Soilgrids WRB probability classes
+  # Soilgrids WRB probability classes
   'Ferralsols',
   'Histosols',
   'Sandysols',
   'Humisols',
   'Thinsols',
   'Wetsols',
-  #Soilgrids Soil Properties
+  
+  # Soilgrids Soil Properties
   'bdod',
   'cec',
   'cfvo',
@@ -65,10 +69,13 @@ covariables <- c(
   'sand',
   'silt',
   'soc',
+  
   'oxides',
   'clayminerals',
+  
   # Black Soil
   'black_soil_prob',
+  
   # Geomorphometry
   'convergence',
   'cti',
@@ -79,9 +86,11 @@ covariables <- c(
   'slope',
   'spi',
   'elevation',
+  
   # Lat-Long
   'latitude',
   'longitude',
+  
   # Koppen
   'lv1_Humid_subtropical_zone',
   'lv1_Tropical',
@@ -93,10 +102,12 @@ covariables <- c(
   'lv2_without_dry_season',
   'lv3_with_hot_summer',
   'lv3_with_temperate_summer',
+  
   # Indices
-  'ndvi',
-  'evi',
-  'savi',
+  'ndvi_mean',
+  'evi_mean',
+  'savi_mean',
+  
   # MapBiomas - Col.7.1
   'formacaoCampestre',
   'formacaoFlorestal',
@@ -105,9 +116,11 @@ covariables <- c(
   'outrasFormacoesNaoFlorestais',
   'pastagem',
   'lavouras',
+  
   'antropico',
   'natural',
   'Area_Estavel',
+  
   # Biomas 
   'Amazonia',
   'Caatinga',
@@ -115,6 +128,7 @@ covariables <- c(
   'Mata_Atalntica',
   'Pampa',
   'Pantanal',
+  
   # Fitofisionomia
   'Floresta_Ombrofila_Aberta',
   'Floresta_Estacional_Decidual',
@@ -128,12 +142,14 @@ covariables <- c(
   'Contato_Ecotono_e_Encrave',
   'Floresta_Estacional_Sempre_Verde',
   'Estepe',
+  
   # Quarta Comunicação Nacional
   "cagb",
   "cbgb",
   "cdw",
   "clitter",
-  "ctotal")
+  "ctotal"
+  )
 
 # Statistical metrics -----------------------------------------------------
 

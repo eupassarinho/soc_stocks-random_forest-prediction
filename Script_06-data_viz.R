@@ -4,18 +4,23 @@ require(readxl)
 require(ggplot2)
 require(patchwork)
 
-data_path <- "C:/Users/erlis/Documents/MEGA/Parcerias_Laboratorios/11_MapBiomas_GT-Solos/soc_stocks-random_forest-prediction/02-cross_validation-results/"
+data_path <- "C:/Users/erlis/Documents/MEGA/Parcerias_Laboratorios/11_MapBiomas_GT-Solos/2023-04-25-cross_validation-study/02-cross_validation-results/"
+
+output_path <- "C:/Users/erlis/Documents/MEGA/Parcerias_Laboratorios/11_MapBiomas_GT-Solos/2023-04-25-cross_validation-study/03-resultant_figures/"
 
 list.files(path = data_path, pattern = ".xlsx")
 
 cv_results <- list(
   read_excel(paste0(data_path, "cross_validation-results_v1-5-0.xlsx")),
   read_excel(paste0(data_path, "cross_validation-results_v1-6-0.xlsx")),
-  read_excel(paste0(data_path, "cross_validation-results_v1-7-2.xlsx"))) %>% 
+  read_excel(paste0(data_path, "cross_validation-results_v1-7-2.xlsx")),
+  read_excel(paste0(data_path, "cross_validation-results_v1-7-3.xlsx"))) %>% 
   bind_rows() %>%
   mutate(cv_nclusters = ifelse(cross_validation == "Standard k-Fold CV",
                                cross_validation,
                                paste(cross_validation, "with", n_clusters, "clusters")))
+
+# Visualizing metrics -----------------------------------------------------
 
 ## ME e MAE para v1-5-0
 (cv_results %>% 
@@ -287,18 +292,206 @@ library(scales)
 ggsave(filename = "./03-resultant_figures/mse_rmse_nse-v1-7-2.png",
        width = 148, height = 220, units = "mm", dpi = 300)
 
+## ME e MAE para v1-7-3
+(cv_results %>% 
+    filter(map_version == "v1-7-3", n_clusters %in% c(0, 30)) %>% 
+    ggplot(aes(x = model_for, y = ME))+
+    geom_errorbar(stat = "boxplot", width = 0.25)+
+    geom_boxplot(width = 0.5, size = 0.7)+
+    facet_grid(.~cv_nclusters)+
+    scale_y_continuous(limits = c(0, 700), breaks = seq(0, 700, 100),
+                       labels = seq(0, 700, 100)/1000)+
+    labs(x = NULL, y = expression(atop("ME", (kg~m^-2))),
+         title = "Simulations for the version data: v1-7-3 (n = 9531)")+
+    theme_classic()+
+    theme(text = element_text(family = "serif", size = 12),
+          axis.text = element_text(family = "serif", size = 12),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.title = element_text(family = "serif", size = 12, colour = "#000000"),
+          axis.title.y = element_text(angle = 0, hjust = 1, vjust = 0.5)))/
+  (cv_results %>% 
+     filter(map_version == "v1-7-3", n_clusters %in% c(0, 30)) %>% 
+     ggplot(aes(x = model_for, y = MAE))+
+     geom_errorbar(stat = "boxplot", width = 0.25)+
+     geom_boxplot(width = 0.5, size = 0.7)+
+     facet_grid(.~cv_nclusters)+
+     scale_y_continuous(limits = c(1500, 2500), breaks = seq(1500, 2500, 200),
+                        labels = seq(1500, 2500, 200)/1000)+
+     labs(x = NULL, y = expression(atop("MAE", (kg~m^-2))))+
+     theme_classic()+
+     theme(text = element_text(family = "serif", size = 12),
+           axis.text = element_text(family = "serif", size = 12),
+           axis.text.x = element_blank(),
+           axis.ticks.x = element_blank(),
+           axis.title = element_text(family = "serif", size = 12, colour = "#000000"),
+           axis.title.y = element_text(angle = 0, hjust = 1, vjust = 0.5)))
+
+ggsave(filename = paste0(output_path, "me_and_mae-v1-7-3.png"),
+       width = 148, height = 148, units = "mm", dpi = 600)
+
+## MSE, RMSE e NSE para v1-7-3
+library(scales)
+
+(cv_results %>% 
+    filter(map_version == "v1-7-3", n_clusters %in% c(0, 30)) %>% 
+    ggplot(aes(x = model_for, y = MSE))+
+    geom_errorbar(stat = "boxplot", width = 0.25)+
+    geom_boxplot(width = 0.5, size = 0.7)+
+    facet_grid(.~cv_nclusters)+
+    scale_y_continuous(limits = c(13000000, 25000000), labels = scientific)+
+    labs(x = NULL,
+         title = "Simulations for the version data: v1-7-3 (n = 9531)")+
+    theme_classic()+
+    theme(text = element_text(family = "serif", size = 12),
+          axis.text = element_text(family = "serif", size = 12),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.title = element_text(family = "serif", size = 12, colour = "#000000"),
+          axis.title.y = element_text(angle = 0, hjust = 1, vjust = 0.5)))/
+  (cv_results %>% 
+     filter(map_version == "v1-7-3", n_clusters %in% c(0, 30)) %>% 
+     ggplot(aes(x = model_for, y = RMSE))+
+     geom_errorbar(stat = "boxplot", width = 0.25)+
+     geom_boxplot(width = 0.5, size = 0.7)+
+     facet_grid(.~cv_nclusters)+
+     scale_y_continuous(limits = c(3000, 5000),
+                        breaks = round(seq(3000, 5000, 400), 3),
+                        labels = round(seq(3000, 5000, 400)/1000, 3))+
+     labs(x = NULL, y = expression(atop("RMSE", (kg~m^-2))))+
+     theme_classic()+
+     theme(text = element_text(family = "serif", size = 12),
+           axis.text = element_text(family = "serif", size = 12),
+           axis.text.x = element_blank(),
+           axis.ticks.x = element_blank(),
+           axis.title = element_text(family = "serif", size = 12, colour = "#000000"),
+           axis.title.y = element_text(angle = 0, hjust = 1, vjust = 0.5)))/
+  (cv_results %>% 
+     filter(map_version == "v1-7-3", n_clusters %in% c(0, 30)) %>% 
+     ggplot(aes(x = model_for, y = NSE))+
+     geom_errorbar(stat = "boxplot", width = 0.25)+
+     geom_boxplot(width = 0.5, size = 0.7)+
+     facet_grid(.~cv_nclusters)+
+     labs(x = NULL)+
+     scale_y_continuous(limits = c(-0.2, 0.6), breaks = round(seq(-0.2, 0.6, 0.2), 1),
+                        labels = round(seq(-0.2, 0.6, 0.2), 1))+
+     theme_classic()+
+     theme(text = element_text(family = "serif", size = 12),
+           axis.text = element_text(family = "serif", size = 12),
+           axis.text.x = element_blank(),
+           axis.ticks.x = element_blank(),
+           axis.title = element_text(family = "serif", size = 12, colour = "#000000"),
+           axis.title.y = element_text(angle = 0, hjust = 1, vjust = 0.5)))
+
+ggsave(filename = paste0(output_path, "mse_rmse_nse-v1-7-3.png"),
+       width = 148, height = 220, units = "mm", dpi = 300)
+
+# Standard cross-validation statistics for territories --------------------
+
+list.files(path = data_path, pattern = ".xlsx")
+
+territories_cv_results <- list(
+  read_excel(paste0(data_path, "each_biome-cross_validation-results_v1-7-3.xlsx"))) %>% 
+  bind_rows()
+
+## ME e MAE para v1-7-3
+(territories_cv_results %>% 
+    filter(map_version == "v1-7-3", n_clusters %in% c(0, 30)) %>% 
+    ggplot(aes(x = biome, y = ME))+
+    geom_errorbar(stat = "boxplot", width = 0.25)+
+    geom_boxplot(width = 0.5, size = 0.7)+
+    scale_y_continuous(limits = c(-200, 800), breaks = seq(-200, 800, 200),
+                       labels = seq(-200, 800, 200)/1000)+
+    labs(x = NULL, y = expression(atop("ME", (kg~m^-2))),
+         title = "Simulations for the version data: v1-7-3 (n = 9531)")+
+    theme_classic()+
+    theme(text = element_text(family = "serif", size = 12),
+          axis.text = element_text(family = "serif", size = 12),
+          axis.ticks.x = element_blank(),
+          axis.title = element_text(family = "serif", size = 12, colour = "#000000"),
+          axis.title.y = element_text(angle = 0, hjust = 1, vjust = 0.5)))/
+  (territories_cv_results %>% 
+     filter(map_version == "v1-7-3", n_clusters %in% c(0, 30)) %>% 
+     ggplot(aes(x = biome, y = MAE))+
+     geom_errorbar(stat = "boxplot", width = 0.25)+
+     geom_boxplot(width = 0.5, size = 0.7)+
+     scale_y_continuous(limits = c(1000, 3500), breaks = seq(1000, 3500, 500),
+                        labels = seq(1000, 3500, 500)/1000)+
+     labs(x = NULL, y = expression(atop("MAE", (kg~m^-2))))+
+     theme_classic()+
+     theme(text = element_text(family = "serif", size = 12),
+           axis.text = element_text(family = "serif", size = 12),
+           axis.ticks.x = element_blank(),
+           axis.title = element_text(family = "serif", size = 12, colour = "#000000"),
+           axis.title.y = element_text(angle = 0, hjust = 1, vjust = 0.5)))
+
+ggsave(filename = paste0(output_path, "biomes-me_and_mae-v1-7-3.png"),
+       width = 220, height = 148, units = "mm", dpi = 600)
+
+## MSE, RMSE e NSE para v1-7-3
+library(scales)
+
+(territories_cv_results %>% 
+    filter(map_version == "v1-7-3", n_clusters %in% c(0, 30)) %>% 
+    ggplot(aes(x = biome, y = MSE))+
+    geom_errorbar(stat = "boxplot", width = 0.25)+
+    geom_boxplot(width = 0.5, size = 0.7)+
+    scale_y_continuous(limits = c(4000000, 60000000), labels = scientific)+
+    labs(x = NULL,
+         title = "Simulations for the version data: v1-7-3 (n = 9531)")+
+    theme_classic()+
+    theme(text = element_text(family = "serif", size = 12),
+          axis.text = element_text(family = "serif", size = 12),
+          axis.ticks.x = element_blank(),
+          axis.title = element_text(family = "serif", size = 12, colour = "#000000"),
+          axis.title.y = element_text(angle = 0, hjust = 1, vjust = 0.5)))/
+  (territories_cv_results %>% 
+     filter(map_version == "v1-7-3", n_clusters %in% c(0, 30)) %>% 
+     ggplot(aes(x = biome, y = RMSE))+
+     geom_errorbar(stat = "boxplot", width = 0.25)+
+     geom_boxplot(width = 0.5, size = 0.7)+
+     scale_y_continuous(limits = c(2000, 8000),
+                        breaks = signif(seq(2000, 8000, 500), 3),
+                        labels = signif(seq(2000, 8000, 500)/1000, 3))+
+     labs(x = NULL, y = expression(atop("RMSE", (kg~m^-2))))+
+     theme_classic()+
+     theme(text = element_text(family = "serif", size = 12),
+           axis.text = element_text(family = "serif", size = 12),
+           axis.ticks.x = element_blank(),
+           axis.title = element_text(family = "serif", size = 12, colour = "#000000"),
+           axis.title.y = element_text(angle = 0, hjust = 1, vjust = 0.5)))/
+  (territories_cv_results %>% 
+     filter(map_version == "v1-7-3", n_clusters %in% c(0, 30)) %>% 
+     ggplot(aes(x = biome, y = NSE))+
+     geom_errorbar(stat = "boxplot", width = 0.25)+
+     geom_boxplot(width = 0.5, size = 0.7)+
+     labs(x = NULL)+
+     scale_y_continuous(limits = c(-0.3, 0.6), breaks = round(seq(-0.3, 0.6, 0.1), 1),
+                        labels = round(seq(-0.3, 0.6, 0.1), 1))+
+     theme_classic()+
+     theme(text = element_text(family = "serif", size = 12),
+           axis.text = element_text(family = "serif", size = 12),
+           axis.ticks.x = element_blank(),
+           axis.title = element_text(family = "serif", size = 12, colour = "#000000"),
+           axis.title.y = element_text(angle = 0, hjust = 1, vjust = 0.5)))
+
+ggsave(filename = paste0(output_path, "biomes-mse_rmse_nse-v1-7-3.png"),
+       width = 220, height = 220, units = "mm", dpi = 300)
+
 # Viewing clusters --------------------------------------------------------
 
 require(readr)
 require(dplyr)
 require(geosphere)
 library(jsonlite)
+library(RColorBrewer)
 
 # Importing and splitting datasets ----------------------------------------
+input_data_path <- "C:/Users/erlis/OneDrive/Documentos/MEGA/Parcerias_Laboratorios/11_MapBiomas_GT-Solos/2023-04-25-cross_validation-study/01-data/"
 
-original_data <- read_csv("01-data/matriz_rf_prediction_v1-7-2.csv")
+original_data <- read_csv(paste0(input_data_path, "matriz_rf_prediction_v1-7-3.csv"))
 
-data_version <- "v1-7-2"
+data_version <- "v1-7-3"
 
 # Grouping samples by geographical position -------------------------------
 
@@ -335,6 +528,11 @@ original_data$cluster <- kmeans_clusters$cluster
 
 # Visualizing clusters ----------------------------------------------------
 
+n <- 20
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+pie(rep(1,n), col=sample(col_vector, n))
+
 clustered_samples <- ggplot2::ggplot(original_data,
                 aes(LON, LAT, color = as.factor(cluster),
                     shape = as.factor(cluster)))+
@@ -349,7 +547,7 @@ clustered_samples <- ggplot2::ggplot(original_data,
   scale_color_manual(values = sample(col_vector, 30))+
   scale_shape_manual(values = rep(c(15, 18, 17, 16, 3, 8, 0, 6, 9, 12), 3))+
   labs(y = "Lat (º)", x = "Long (º)",
-       title = "Point data from version v1-7-2 (n = 9633): 30 clusters of points")+
+       title = "Point data from version v1-7-3 (n = 9531): 30 clusters of points")+
   theme_bw()+
   theme(legend.position = "none",
         axis.title = element_text(family = "serif", size = 12, color = "#000000"),
@@ -359,13 +557,9 @@ clustered_samples <- ggplot2::ggplot(original_data,
         panel.background = element_rect(fill = "#B9B9B9"),
         plot.background = element_rect(fill = "#B9B9B9"))
 
-ggsave("./03-resultant_figures/clustered_points-v1_7_2-30_clusters.png",
+ggsave(paste0(output_path, "clustered_points-v1_7_3-30_clusters.png"),
        plot = clustered_samples,
        width = 210, height = 250, units = "mm", dpi = 300) 
 
 
-library(RColorBrewer)
-n <- 20
-qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
-col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
-pie(rep(1,n), col=sample(col_vector, n))
+

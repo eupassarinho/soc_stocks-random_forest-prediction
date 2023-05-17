@@ -95,16 +95,16 @@ original_data <- read_csv(paste0(input_data_path,
                                  "/matriz_rf_prediction_v1-7-3.csv"))
 data_version <- "v1-7-3"
 
-biomes <- list(original_data %>% filter(Amazonia == 1),
-               original_data %>% filter(Caatinga == 1),
-               original_data %>% filter(Cerrado == 1),
-               original_data %>% filter(Mata_Atalntica == 1),
-               original_data %>% filter(Pampa == 1),
-               original_data %>% filter(Pantanal == 1))
+original_data <- original_data %>% mutate(
+  biome = ifelse(Amazonia == 1, "Amazônia",
+                 ifelse(Caatinga == 1, "Caatinga",
+                        ifelse(Mata_Atalntica == 1, "Mata Atlântica",
+                               ifelse(Cerrado == 1, "Cerrado",
+                                      ifelse(Pampa == 1, "Pampa",
+                                             ifelse(Pantanal == 1, "Pantanal", "NA"
+                                                    )))))))
 
-names(biomes) <- c("Amazônia", "Caatinga", "Cerrado", "Mata Atlântica", "Pampa", "Pantanal")
-  
-remove(input_data_path, original_data)
+remove(input_data_path)
 
 # Auxiliary functions -----------------------------------------------------
 
@@ -116,6 +116,38 @@ remove_tail <- function(x, sep = ".R", del = 1){
 keep_tail <- function(x, sep = "_", del = 4){
   sapply(strsplit(x, split = sep, fixed = TRUE),
          function(i) paste(tail(i, -del), collapse = sep))
+}
+
+regression_eval <- function(pred, obs){
+  
+  # mean error
+  ME <- round(mean(pred - obs, na.rm = TRUE), digits = 4)
+  
+  # mean square error
+  MSE <-   round(mean((pred - obs)^2, na.rm = TRUE), digits = 4)
+  
+  # mean absolute error
+  MAE <-   round(mean(abs(pred - obs), na.rm = TRUE), digits = 4)
+  
+  # root mean square error
+  RMSE <-   round(sqrt(mean((pred - obs)^2, na.rm = TRUE)), digits = 4)
+  
+  # Pearson's correlation squared
+  r2 <-  round((cor(pred, obs, method = 'spearman', use = 'pairwise.complete.obs')^2), digits = 4)
+  
+  # Nash–Sutcliffe model efficiency coefficient
+  NSE <- round(hydroGOF::NSE(sim = pred, obs = obs), digits = 4)
+  
+  # Lin's concordance correlation coefficient
+  CCC <- round(yardstick::ccc_vec(truth = obs, estimate = pred), digits = 4)
+  
+  out <- c(ME, MAE, MSE, RMSE, NSE, r2, CCC)
+  names(out) <- c("ME", "MAE", "MSE", "RMSE", "NSE", "Rsquared", "CCC")
+  
+  if (any(is.nan(out))) 
+    out[is.nan(out)] <- NA
+  out
+  
 }
 
 # Computing statistical metrics for samples from each biome separa --------
@@ -133,24 +165,9 @@ check_statistical_results <- function(
     map_version = data_version, model_for = "Both stable and unstable",
     cross_validation = "Standard k-Fold CV", n_clusters = 0, model_number = 1) {
   
-  gof(
-    sim = predict.train(tuned_RF_kfold_cv, dataset),
-    obs = dataset %>% pull(estoque),
-    do.spearman = TRUE, digits = 5) %>%
-    as.data.frame() %>% rownames_to_column() %>% 
-    rename(.metric = rowname, .estimate = V1) %>%
-    bind_rows(
-      tibble(
-        .metric = "CCC",
-        .estimate = ccc_vec(
-          truth = dataset %>% pull(estoque),
-          estimate = predict.train(tuned_RF_kfold_cv, dataset)
-        )
-      )
-    ) %>%
-    pivot_wider(names_from = ".metric", values_from = ".estimate") %>% 
-    select(c("ME", "MSE", "MAE", "RMSE", "R2", "NSE", "CCC")) %>% 
-    rename(Rsquared = R2) %>% 
+  regression_eval(pred = dataset %>% pull(pred_estoque),
+                  obs = dataset %>% pull(estoque)) %>%
+    as.data.frame() %>% t() %>% as_tibble() %>% 
     mutate(model = model_number, 
            map_version = map_version,
            n_clusters = n_clusters,
@@ -161,89 +178,44 @@ check_statistical_results <- function(
 }
 
 amazonia_cv_results <- list()
-
-for (i in 1:100) {
-  
-  load(paste0(models_path,
-              model_names[grep(paste0("_", model_number[i], ".RData"), model_names)]))
-  
-  amazonia_cv_results[[i]] <- check_statistical_results(
-    dataset = biomes[["Amazônia"]], biome = "Amazônia", model_number = i)
-  
-  remove(tuned_RF_kfold_cv)
-  gc()
-  
-}
-
 caatinga_cv_results <- list()
-
-for (i in 1:100) {
-  
-  load(paste0(models_path,
-              model_names[grep(paste0("_", model_number[i], ".RData"), model_names)]))
-  
-  caatinga_cv_results[[i]] <- check_statistical_results(
-    dataset = biomes[["Caatinga"]], biome = "Caatinga", model_number = i)
-  
-  remove(tuned_RF_kfold_cv)
-  gc()
-  
-}
-
 cerrado_cv_results <- list()
-
-for (i in 1:100) {
-  
-  load(paste0(models_path,
-              model_names[grep(paste0("_", model_number[i], ".RData"), model_names)]))
-  
-  cerrado_cv_results[[i]] <- check_statistical_results(
-    dataset = biomes[["Cerrado"]], biome = "Cerrado", model_number = i)
-  
-  remove(tuned_RF_kfold_cv)
-  gc()
-  
-}
-
 mata_atlantica_cv_results <- list()
-
-for (i in 1:100) {
-  
-  load(paste0(models_path,
-              model_names[grep(paste0("_", model_number[i], ".RData"), model_names)]))
-  
-  mata_atlantica_cv_results[[i]] <- check_statistical_results(
-    dataset = biomes[["Mata Atlântica"]], biome = "Mata Atlântica", model_number = i)
-  
-  remove(tuned_RF_kfold_cv)
-  gc()
-  
-}
-
 pampa_cv_results <- list()
-
-for (i in 1:100) {
-  
-  load(paste0(models_path,
-              model_names[grep(paste0("_", model_number[i], ".RData"), model_names)]))
-  
-  pampa_cv_results[[i]] <- check_statistical_results(
-    dataset = biomes[["Pampa"]], biome = "Pampa", model_number = i)
-  
-  remove(tuned_RF_kfold_cv)
-  gc()
-  
-}
-
 pantanal_cv_results <- list()
 
 for (i in 1:100) {
   
   load(paste0(models_path,
               model_names[grep(paste0("_", model_number[i], ".RData"), model_names)]))
+
+  original_data$pred_estoque <- tuned_RF_kfold_cv[["finalModel"]][["predictions"]]
+  
+  amazonia_cv_results[[i]] <- check_statistical_results(
+    dataset = original_data %>% filter(biome == "Amazônia"), biome = "Amazônia",
+    model_number = i)
+  
+  caatinga_cv_results[[i]] <- check_statistical_results(
+    dataset = original_data %>% filter(biome == "Caatinga"), biome = "Caatinga",
+    model_number = i)
+  
+  cerrado_cv_results[[i]] <- check_statistical_results(
+    dataset = original_data %>% filter(biome == "Cerrado"), biome = "Cerrado",
+    model_number = i)
+  
+  mata_atlantica_cv_results[[i]] <- check_statistical_results(
+    dataset = original_data %>% filter(biome == "Mata Atlântica"), biome = "Mata Atlântica",
+    model_number = i)
+  
+  pampa_cv_results[[i]] <- check_statistical_results(
+    dataset = original_data %>% filter(biome == "Pampa"), biome = "Pampa",
+    model_number = i)
   
   pantanal_cv_results[[i]] <- check_statistical_results(
-    dataset = biomes[["Pantanal"]], biome = "Pantanal", model_number = i)
+    dataset = original_data %>% filter(biome == "Pantanal"), biome = "Pantanal",
+    model_number = i)
+  
+  original_data <- original_data %>% select(-pred_estoque)
   
   remove(tuned_RF_kfold_cv)
   gc()
